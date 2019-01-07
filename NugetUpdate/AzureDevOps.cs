@@ -66,7 +66,6 @@ namespace NugetPackageUpdates
             var obj = JsonConvert.DeserializeObject<dynamic>(await response.Content.ReadAsStringAsync());
             string masterObjectId = obj.value[0].objectId;
 
-
             var vstsChanges = changeSet.Changes.Select(x => new
             {
                 changeType = "edit",
