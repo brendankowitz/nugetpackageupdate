@@ -27,6 +27,9 @@ namespace NugetPackageUpdates
         public async Task<ICollection<string>> FindProjectFiles()
         {
             var response = await _client.GetAsync($"{_apiBase}/items?api-version=2.0-preview&versionType=branch&Version=master&recursionLevel=Full");
+
+            response.EnsureSuccessStatusCode();
+
             var content = JsonConvert.DeserializeObject<dynamic>(await response.Content.ReadAsStringAsync());
 
             var results = new List<string>();

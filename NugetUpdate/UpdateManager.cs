@@ -75,22 +75,37 @@ namespace NugetPackageUpdates
 
             var latestPackageVersions =
                 (await Task.WhenAll(_nugetApis
-                    .Select(x => x.GetPackageVersions(allPackages, DateTime.Now.AddDays(-PackagesMustBePublishedForThisManyDays),
+                    .Select(x => x.GetPackageVersions(allPackages,
                         AllowBetaPackages))))
                 .SelectMany(x => x)
                 .GroupBy(x => x.Key)
                 .ToDictionary(x => x.Key, x => x.OrderByDescending(y => y.Value).FirstOrDefault().Value);
 
             HashSet<string> packagesToUpdate = new HashSet<string>();
-            var packages = projectFiles.SelectMany(x => x.ListPackages()).Distinct();
+            var packages = projectFiles.SelectMany(x => x.ListPackages())
+                .GroupBy(x => x.Key)
+                .ToDictionary(x => x.Key, x => x.First().Value);
 
             foreach (var item in latestPackageVersions)
             {
-                var projectVersion = NuGetVersion.Parse(packages.First(x => x.Key == item.Key).Value);
+                var projectVersion = NuGetVersion.Parse(packages[item.Key]);
 
-                if (item.Value > projectVersion)
+                var lastVersion = item.Value;
+                if (lastVersion.Version > projectVersion)
                 {
-                    packagesToUpdate.Add($"{item.Key}|{item.Value}");
+                    // Major minor versions older than 21 days
+                    var shouldUpdateMajorMinor = 
+                        (lastVersion.Version.Major > projectVersion.Major || lastVersion.Version.Minor > projectVersion.Minor)
+                            && lastVersion.Released <= DateTime.Now.AddDays(-PackagesMustBePublishedForThisManyDays);
+
+                    var shouldUpdatePatch = lastVersion.Version.Major == projectVersion.Major
+                                            && lastVersion.Version.Minor == projectVersion.Minor 
+                                            && lastVersion.Version > projectVersion;
+
+                    if (shouldUpdateMajorMinor || shouldUpdatePatch)
+                    {
+                        packagesToUpdate.Add($"{item.Key}|{item.Value}");
+                    }
                 }
             }
 
@@ -119,7 +134,7 @@ namespace NugetPackageUpdates
                 foreach (var package in @group)
                 {
                     var packageUpdateMessage =
-                        $"Updates package '{package}' to version '{latestPackageVersions[package]}'";
+                        $"Updates package '{package}' to version '{latestPackageVersions[package].Version}'";
 
                     if (@group.Count() == 1)
                     {
@@ -133,7 +148,7 @@ namespace NugetPackageUpdates
                     foreach (var projectFile in projectFiles)
                     {
                         projectFile.UpdatePackageReference(package,
-                            latestPackageVersions[package].ToString());
+                            latestPackageVersions[package].Version.ToString());
                     }
                 }
 

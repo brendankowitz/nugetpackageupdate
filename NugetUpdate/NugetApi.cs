@@ -25,14 +25,13 @@ namespace NugetPackageUpdates
             _log = log;
         }
 
-        public async Task<IDictionary<string, NuGetVersion>> GetPackageVersions(
+        public async Task<IDictionary<string, NugetPackage>> GetPackageVersions(
             IEnumerable<string> packages,
-            DateTime publishedBefore,
             ICollection<string> allowBetaVersions)
         {
-            var results = new Dictionary<string, NuGetVersion>();
+            var results = new Dictionary<string, NugetPackage>();
 
-            using (var client = new HttpClient())
+            using (var client = CreateHttpClient())
             {
                 if (_authorizationHeader != null)
                 {
@@ -44,38 +43,51 @@ namespace NugetPackageUpdates
                     try
                     {
                         var result = await client.GetAsync($"{_baseUri.ToString().Trim('/')}/{package.ToLowerInvariant()}/index.json");
+
+                        result.EnsureSuccessStatusCode();
+
                         var content = await result.Content.ReadAsStringAsync();
                         var obj = JObject.Parse(content);
 
                         var parse = obj["items"]
                             .SelectMany(x => x["items"])
                             .Select(x => x["catalogEntry"])
-                            .Select(x => (Version: NuGetVersion.Parse(x.Value<string>("version")), Published: x.Value<DateTime>("published"), Listed: x.Value<bool>("listed")))
+                            .Select(x => new NugetPackage(package, NuGetVersion.Parse(x.Value<string>("version")), x.Value<DateTime>("published"), x.Value<bool>("listed")))
                             .ToArray();
 
                         var selected = parse
                             .OrderByDescending(x => x.Version)
                             .Where(x => x.Listed)
-                            .Where(x => !x.Version.IsPrerelease || allowBetaVersions.Contains(package) || allowBetaVersions.Contains("*"))
-                            .FirstOrDefault(x => x.Published <= publishedBefore);
+                            .FirstOrDefault(x => !x.Version.IsPrerelease || allowBetaVersions.Contains(package) || allowBetaVersions.Contains("*"));
 
-                        if (selected.Version != null)
+                        if (selected != null)
                         {
-                            results.Add(package, selected.Version);
+                            results.Add(package, selected);
                         }
                         else
                         {
                             _log.WriteLine($"{package} had no released versions");
                         }
                     }
-                    catch
+                    catch (HttpRequestException ex)
                     {
+                        if (!ex.Message.Contains("404"))
+                        {
+                            _log.WriteLine(ex.ToString());
+                            throw;
+                        }
+
                         _log.WriteLine($"Could not find {package} on {_baseUri.Host}.");
                     }
                 }
             }
 
             return results;
+        }
+
+        protected virtual HttpClient CreateHttpClient()
+        {
+            return new HttpClient();
         }
     }
 }
