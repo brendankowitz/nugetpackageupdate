@@ -27,6 +27,9 @@ namespace NugetPackageUpdates
         public async Task<ICollection<string>> FindProjectFiles()
         {
             var response = await _client.GetAsync($"{_apiBase}/items?api-version=2.0-preview&versionType=branch&Version=master&recursionLevel=Full");
+
+            response.EnsureSuccessStatusCode();
+
             var content = JsonConvert.DeserializeObject<dynamic>(await response.Content.ReadAsStringAsync());
 
             var results = new List<string>();
@@ -65,7 +68,6 @@ namespace NugetPackageUpdates
             var response = await _client.GetAsync($"{_apiBase}/refs?api-version=2.0-preview&filter=heads%2Fmaster");
             var obj = JsonConvert.DeserializeObject<dynamic>(await response.Content.ReadAsStringAsync());
             string masterObjectId = obj.value[0].objectId;
-
 
             var vstsChanges = changeSet.Changes.Select(x => new
             {
