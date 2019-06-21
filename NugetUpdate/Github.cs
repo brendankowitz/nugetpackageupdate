@@ -106,7 +106,6 @@ namespace NugetPackageUpdates
             var refResult = await _client.PostAsync(
                 $"/repos/{_owner}/{_project}/git/refs",
                 new StringContent(JsonConvert.SerializeObject(newRef), Encoding.UTF8, "application/json"));
-            var refContentStr = await refResult.Content.ReadAsStringAsync();
 
             refResult.EnsureSuccessStatusCode();
 

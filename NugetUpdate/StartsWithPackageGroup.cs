@@ -13,7 +13,7 @@ namespace NugetPackageUpdates
             _packageStartsWith = packageStartsWith;
         }
 
-        public string GetGroupName(string packageName)
+        public string GetGroupName(string packageName, string packageVersion)
         {
             if (_packageStartsWith.Any(x => packageName.StartsWith(x)))
             {

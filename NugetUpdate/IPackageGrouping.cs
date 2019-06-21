@@ -2,6 +2,6 @@
 {
     public interface IPackageGrouping
     {
-        string GetGroupName(string packageName);
+        string GetGroupName(string packageName, string packageVersion);
     }
 }

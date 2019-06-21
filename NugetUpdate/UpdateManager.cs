@@ -104,7 +104,7 @@ namespace NugetPackageUpdates
 
                     if (shouldUpdateMajorMinor || shouldUpdatePatch)
                     {
-                        packagesToUpdate.Add($"{item.Key}|{item.Value}");
+                        packagesToUpdate.Add($"{item.Key}|{item.Value.Version}");
                     }
                 }
             }
@@ -112,10 +112,8 @@ namespace NugetPackageUpdates
             var packageGroupings =
                 packagesToUpdate
                     .Select(x => x.Split('|'))
-                    .Select(x => x[0])
-                    .GroupBy(x => PackageGroupings
-                        .First(y => y.GetGroupName(x) != null)
-                        .GetGroupName(x));
+                    .GroupBy(x => PackageGroupings.Select(y => y.GetGroupName(x[0], x[1])).First(y => y != null),
+                        x => x[0]);
 
             var changeSets = new List<ChangeSet>();
 

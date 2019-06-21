@@ -11,7 +11,7 @@ namespace NugetPackageUpdates
             _exclude = exclude;
         }
 
-        public string GetGroupName(string packageName)
+        public string GetGroupName(string packageName, string packageVersion)
         {
             var first = packageName.Split('.').First();
 
