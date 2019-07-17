@@ -73,13 +73,13 @@ namespace NugetPackageUpdates
 
             _log.WriteLine("Fetching latest packages");
 
+            var nugetPackages = await Task.WhenAll(_nugetApis.Select(x => x.GetPackageVersions(allPackages, AllowBetaPackages)));
+
             var latestPackageVersions =
-                (await Task.WhenAll(_nugetApis
-                    .Select(x => x.GetPackageVersions(allPackages,
-                        AllowBetaPackages))))
+                nugetPackages
                 .SelectMany(x => x)
                 .GroupBy(x => x.Key)
-                .ToDictionary(x => x.Key, x => x.OrderByDescending(y => y.Value).FirstOrDefault().Value);
+                .ToDictionary(x => x.Key, x => x.OrderByDescending(y => y.Value.Version).FirstOrDefault().Value);
 
             HashSet<string> packagesToUpdate = new HashSet<string>();
             var packages = projectFiles.SelectMany(x => x.ListPackages())
