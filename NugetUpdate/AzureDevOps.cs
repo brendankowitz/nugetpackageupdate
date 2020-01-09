@@ -53,6 +53,14 @@ namespace NugetPackageUpdates
             return new ProjectFile(projectPath, await response.Content.ReadAsByteArrayAsync());
         }
 
+        public async Task<TextFile> GetTextFile(string path)
+        {
+            _log.WriteLine($"Fetching '{path}'");
+
+            var response = await _client.GetAsync($"{_apiBase}/items?api-version=2.0-preview&versionType=branch&Version=master&scopePath={path}");
+            return new TextFile(path, await response.Content.ReadAsByteArrayAsync());
+        }
+
         public async Task SubmitPR(ChangeSet changeSet)
         {
             await SubmitPR(changeSet, new string[0]);

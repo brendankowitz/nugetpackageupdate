@@ -142,6 +142,19 @@ namespace NugetPackageUpdates
             return new ProjectFile(projectPath, fromBase64String, true);
         }
 
+        public async Task<TextFile> GetTextFile(string path)
+        {
+            _log.WriteLine($"Fetching '{path}'");
+
+            var response = await _client.GetAsync($"/repos/{_owner}/{_project}/contents/{path}");
+            var value = await response.Content.ReadAsStringAsync();
+
+            var details = JsonConvert.DeserializeObject<dynamic>(value);
+            var fromBase64String = Convert.FromBase64String((string)details.content);
+
+            return new TextFile(path, fromBase64String, true);
+        }
+
         public async Task<ICollection<string>> FindProjectFiles()
         {
             var response = await _client.GetAsync($"/search/code?q=.csproj+in:path+repo:{_owner}/{_project}");

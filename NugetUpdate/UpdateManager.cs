@@ -152,11 +152,11 @@ namespace NugetPackageUpdates
 
                 foreach (var projectFile in projectFiles)
                 {
-                    groupChangeSet.Changes.Add(new Change
+                    var change = projectFile.ToChange();
+                    if (change != null)
                     {
-                        FilePath = projectFile.FilePath,
-                        FileContents = projectFile.ToString()
-                    });
+                        groupChangeSet.Changes.Add(change);
+                    }
 
                     projectFile.Reset();
                 }

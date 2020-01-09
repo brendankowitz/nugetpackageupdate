@@ -2,25 +2,20 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Xml;
 
 namespace NugetPackageUpdates
 {
-    public class ProjectFile
+    public class ProjectFile : File
     {
-        readonly byte[] _rawContent;
-        private readonly bool _preserveBomChar;
         readonly XmlDocument _doc;
 
-        public ProjectFile(string path, byte[] xmlContents, bool preserveBomChar = false)
+        public ProjectFile(string path, byte[] contents, bool preserveBomChar = false)
+            : base(path, contents, preserveBomChar)
         {
             _doc = new XmlDocument();
             _doc.PreserveWhitespace = true;
-            ParseFileContents(xmlContents);
-            _rawContent = xmlContents;
-            _preserveBomChar = preserveBomChar;
-            FilePath = path;
+            ParseFileContents(contents);
         }
 
         private void ParseFileContents(byte[] xmlContents)
@@ -35,7 +30,7 @@ namespace NugetPackageUpdates
 
         public void Reset()
         {
-            ParseFileContents(_rawContent);
+            ParseFileContents(RawContent);
         }
 
         public IDictionary<string, string> ListPackages()
@@ -60,31 +55,9 @@ namespace NugetPackageUpdates
             return false;
         }
 
-        public override string ToString()
+        protected override string GetContent()
         {
-            using (var sw = new StringWriterWithEncoding(Encoding.UTF8))
-            {
-                //Keep uft-8 BOM encoding (if required)
-                if (_preserveBomChar &&
-                    _rawContent[0] == 0xEF && _rawContent[1] == 0xBB && _rawContent[2] == 0xBF)
-                {
-                    sw.Write((char)65279);
-                }
-
-                sw.Write(_doc.OuterXml);
-
-                return sw.ToString();
-            }
-        }
-
-        public sealed class StringWriterWithEncoding : StringWriter
-        {
-            public override Encoding Encoding { get; }
-
-            public StringWriterWithEncoding(Encoding encoding)
-            {
-                Encoding = encoding;
-            }
+            return _doc.OuterXml;
         }
     }
 }
