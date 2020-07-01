@@ -157,21 +157,33 @@ namespace NugetPackageUpdates
 
         public async Task<ICollection<string>> FindProjectFiles()
         {
-            var response = await _client.GetAsync($"/search/code?q=.csproj+in:path+repo:{_owner}/{_project}");
+            var results = new List<string>();
+
+            var path = $"/search/code?q=.csproj+in:path+repo:{_owner}/{_project}";
+            var page = 1;
+
+            var response = await _client.GetAsync(path);
             var value = await response.Content.ReadAsStringAsync();
 
             var content = JsonConvert.DeserializeObject<dynamic>(value);
 
-            var results = new List<string>();
-
-            foreach (dynamic item in content.items)
+            while (content.items.Count > 0) 
             {
-                if (((string)item.path).EndsWith("csproj"))
+                foreach (dynamic item in content.items)
                 {
-                    results.Add((string)item.path);
+                    if (((string)item.path).EndsWith("csproj"))
+                    {
+                        results.Add((string)item.path);
+                    }
                 }
-            }
+                
+                page++;
+                response = await _client.GetAsync($"{path}&page={page}");
+                value = await response.Content.ReadAsStringAsync();
 
+                content = JsonConvert.DeserializeObject<dynamic>(value);
+            }
+            
             return results;
         }
     }
