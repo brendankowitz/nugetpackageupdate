@@ -23,3 +23,7 @@ jobs:
       run: dotnet build --configuration Release --no-restore
     - name: Test
       run: dotnet test --no-restore --verbosity normal
+    - name: Upload Packge Result
+      uses: actions/upload-artifact@v1
+      with:
+        path: /home/runner/work/nugetpackageupdate/nugetpackageupdate/NugetUpdate/bin/Release/*.nupkg
