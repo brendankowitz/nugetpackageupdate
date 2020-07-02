@@ -23,10 +23,8 @@ jobs:
       run: dotnet build --configuration Release --no-restore
     - name: Test
       run: dotnet test --no-restore --verbosity normal
-    - name: Publish
-      run: dotnet publish --configuration Release --no-restore
-    - name: Nuget
+    - name: Nuget Packge
       uses: actions/upload-artifact@v1
       with:
-        name: Nuget
-        path: /home/runner/work/nugetpackageupdate/nugetpackageupdate/NugetUpdate/bin/Release/netcoreapp3.1/publish/
+        name: NugetPackageUpdates.nupkg
+        path: /home/runner/work/nugetpackageupdate/nugetpackageupdate/NugetUpdate/bin/Release/
