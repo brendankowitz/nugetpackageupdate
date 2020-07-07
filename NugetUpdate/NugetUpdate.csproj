@@ -9,7 +9,7 @@
     <Product>NugetPackageUpdates</Product>
     <AssemblyName>NugetPackageUpdates</AssemblyName>
     <RootNamespace>NugetPackageUpdates</RootNamespace>
-    <Version>1.0.17</Version>
+    <Version>1.0.18</Version>
   </PropertyGroup>
 
   <ItemGroup>
