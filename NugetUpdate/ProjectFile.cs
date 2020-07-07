@@ -35,7 +35,7 @@ namespace NugetPackageUpdates
         {
             return _doc.SelectNodes($"Project/ItemGroup/PackageReference")
                 .OfType<XmlNode>()
-                .Where(x => x.Attributes != null 
+                .Where(x => x.Attributes != null
                             && x.Attributes.OfType<XmlAttribute>().Any(y => string.Equals(y.Name, "Include", StringComparison.OrdinalIgnoreCase))
                             && x.Attributes.OfType<XmlAttribute>().Any(y => string.Equals(y.Name, "Version", StringComparison.OrdinalIgnoreCase)))
                 .ToDictionary(x => x.Attributes["Include"].Value, x => x.Attributes["Version"].Value);
