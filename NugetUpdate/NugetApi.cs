@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
@@ -16,7 +17,7 @@ namespace NugetPackageUpdates
         private readonly AuthenticationHeaderValue _authorizationHeader;
         private readonly TextWriter _log;
 
-        public static readonly Func<TextWriter, NugetApi> Official = logger => new NugetApi(new Uri("https://api.nuget.org/v3/registration3"), null, logger);
+        public static readonly Func<TextWriter, NugetApi> Official = logger => new NugetApi(new Uri("https://api.nuget.org/v3/registration5-gz-semver2"), null, logger);
 
         public NugetApi(Uri baseUri, AuthenticationHeaderValue authorizationHeader, TextWriter log)
         {
@@ -46,7 +47,7 @@ namespace NugetPackageUpdates
 
                         result.EnsureSuccessStatusCode();
 
-                        var content = await result.Content.ReadAsStringAsync();
+                        string content = await result.Content.ReadAsStringAsync();
                         var obj = JObject.Parse(content);
 
                         var parse = obj["items"]
@@ -87,7 +88,11 @@ namespace NugetPackageUpdates
 
         protected virtual HttpClient CreateHttpClient()
         {
-            return new HttpClient();
+            HttpClientHandler handler = new HttpClientHandler()
+            {
+                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
+            };
+            return new HttpClient(handler);
         }
     }
 }

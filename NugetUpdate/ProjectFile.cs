@@ -26,8 +26,6 @@ namespace NugetPackageUpdates
             }
         }
 
-        public string FilePath { get; }
-
         public void Reset()
         {
             ParseFileContents(RawContent);
