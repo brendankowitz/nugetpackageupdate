@@ -9,7 +9,8 @@
     <Product>NugetPackageUpdates</Product>
     <AssemblyName>NugetPackageUpdates</AssemblyName>
     <RootNamespace>NugetPackageUpdates</RootNamespace>
-    <Version>1.0.19</Version>
+    <Version>1.0.20</Version>
+    <LangVersion>8</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>

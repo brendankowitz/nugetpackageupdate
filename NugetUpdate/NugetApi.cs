@@ -13,15 +13,20 @@ namespace NugetPackageUpdates
 {
     public class NugetApi
     {
-        private readonly Uri _baseUri;
+        private readonly Uri _indexUri;
         private readonly AuthenticationHeaderValue _authorizationHeader;
         private readonly TextWriter _log;
 
-        public static readonly Func<TextWriter, NugetApi> Official = logger => new NugetApi(new Uri("https://api.nuget.org/v3/registration5-gz-semver2"), null, logger);
+        public static readonly Func<TextWriter, NugetApi> Official = logger => new NugetApi(new Uri("https://api.nuget.org/v3-index/index.json"), null, logger);
 
-        public NugetApi(Uri baseUri, AuthenticationHeaderValue authorizationHeader, TextWriter log)
+        public NugetApi(Uri indexUri, AuthenticationHeaderValue authorizationHeader, TextWriter log)
         {
-            _baseUri = baseUri;
+            if (!indexUri.ToString().EndsWith("index.json"))
+            {
+                throw new ArgumentException($"{nameof(indexUri)} should end with index.json, e.g. https://api.nuget.org/v3-index/index.json");
+            }
+
+            _indexUri = indexUri;
             _authorizationHeader = authorizationHeader;
             _log = log;
         }
@@ -32,54 +37,63 @@ namespace NugetPackageUpdates
         {
             var results = new Dictionary<string, NugetPackage>();
 
-            using (var client = CreateHttpClient())
+            using HttpClient client = CreateHttpClient();
+
+            if (_authorizationHeader != null)
             {
-                if (_authorizationHeader != null)
+                client.DefaultRequestHeaders.Authorization = _authorizationHeader;
+            }
+
+            var indexDocumentJson = await client.GetStringAsync(_indexUri);
+            var indexDocument = JObject.Parse(indexDocumentJson);
+            var baseUriStr = indexDocument.SelectToken("resources[?(@['@type']=='RegistrationsBaseUrl/Versioned')]['@id']")?.ToString();
+
+            if (string.IsNullOrEmpty(baseUriStr))
+            {
+                throw new NotSupportedException("The node 'RegistrationsBaseUrl/Versioned' was not found in the current nuget feeds index.json");
+            }
+
+            var baseUri = new Uri(baseUriStr);
+
+            foreach (var package in packages)
+            {
+                try
                 {
-                    client.DefaultRequestHeaders.Authorization = _authorizationHeader;
+                    var result = await client.GetAsync($"{baseUri.ToString().Trim('/')}/{package.ToLowerInvariant()}/index.json");
+
+                    result.EnsureSuccessStatusCode();
+
+                    string content = await result.Content.ReadAsStringAsync();
+                    var obj = JObject.Parse(content);
+
+                    var items = obj.SelectTokens("$.items[*].items[*].catalogEntry");
+                    var parse = items
+                        .Select(x => new NugetPackage(package, NuGetVersion.Parse(x.Value<string>("version")), x.Value<DateTime>("published"), x.Value<bool>("listed")))
+                        .ToArray();
+
+                    var selected = parse
+                        .OrderByDescending(x => x.Version)
+                        .Where(x => x.Listed)
+                        .FirstOrDefault(x => !x.Version.IsPrerelease || allowBetaVersions.Contains(package) || allowBetaVersions.Contains("*"));
+
+                    if (selected != null)
+                    {
+                        results.Add(package, selected);
+                    }
+                    else
+                    {
+                        _log.WriteLine($"{package} had no released versions");
+                    }
                 }
-
-                foreach (var package in packages)
+                catch (HttpRequestException ex)
                 {
-                    try
+                    if (!ex.Message.Contains("404"))
                     {
-                        var result = await client.GetAsync($"{_baseUri.ToString().Trim('/')}/{package.ToLowerInvariant()}/index.json");
-
-                        result.EnsureSuccessStatusCode();
-
-                        string content = await result.Content.ReadAsStringAsync();
-                        var obj = JObject.Parse(content);
-
-                        var parse = obj["items"]
-                            .SelectMany(x => x["items"])
-                            .Select(x => x["catalogEntry"])
-                            .Select(x => new NugetPackage(package, NuGetVersion.Parse(x.Value<string>("version")), x.Value<DateTime>("published"), x.Value<bool>("listed")))
-                            .ToArray();
-
-                        var selected = parse
-                            .OrderByDescending(x => x.Version)
-                            .Where(x => x.Listed)
-                            .FirstOrDefault(x => !x.Version.IsPrerelease || allowBetaVersions.Contains(package) || allowBetaVersions.Contains("*"));
-
-                        if (selected != null)
-                        {
-                            results.Add(package, selected);
-                        }
-                        else
-                        {
-                            _log.WriteLine($"{package} had no released versions");
-                        }
+                        _log.WriteLine(ex.ToString());
+                        throw;
                     }
-                    catch (HttpRequestException ex)
-                    {
-                        if (!ex.Message.Contains("404"))
-                        {
-                            _log.WriteLine(ex.ToString());
-                            throw;
-                        }
 
-                        _log.WriteLine($"Could not find {package} on {_baseUri.Host}.");
-                    }
+                    _log.WriteLine($"Could not find {package} on {baseUri.Host}.");
                 }
             }
 
@@ -88,10 +102,11 @@ namespace NugetPackageUpdates
 
         protected virtual HttpClient CreateHttpClient()
         {
-            HttpClientHandler handler = new HttpClientHandler()
+            var handler = new HttpClientHandler
             {
-                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
+                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
             };
+
             return new HttpClient(handler);
         }
     }
