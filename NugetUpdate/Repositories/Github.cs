@@ -111,7 +111,7 @@ namespace NugetPackageUpdates
 
             var messageLines = changeSet.Message.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
 
-            _log.WriteLine("Opening PR");
+            _log.Write("Opening PR...");
 
             var newPr = new
             {
@@ -125,8 +125,13 @@ namespace NugetPackageUpdates
                 $"/repos/{_owner}/{_project}/pulls",
                 new StringContent(JsonConvert.SerializeObject(newPr), Encoding.UTF8, "application/json"));
 
-            var prContentStr = await prResult.Content.ReadAsStringAsync();
+            if (!prResult.IsSuccessStatusCode)
+            {
+                var prContentStr = await prResult.Content.ReadAsStringAsync();
+                _log.WriteLine($"failed to create PR :( {Environment.NewLine} {prContentStr}");
+            }
 
+            _log.WriteLine("OK");
         }
 
         public async Task<ProjectFile> GetProjectFile(string projectPath)
@@ -167,7 +172,7 @@ namespace NugetPackageUpdates
 
             var content = JsonConvert.DeserializeObject<dynamic>(value);
 
-            while (content.items.Count > 0) 
+            while (content.items.Count > 0)
             {
                 foreach (dynamic item in content.items)
                 {
@@ -176,14 +181,14 @@ namespace NugetPackageUpdates
                         results.Add((string)item.path);
                     }
                 }
-                
+
                 page++;
                 response = await _client.GetAsync($"{path}&page={page}");
                 value = await response.Content.ReadAsStringAsync();
 
                 content = JsonConvert.DeserializeObject<dynamic>(value);
             }
-            
+
             return results;
         }
     }
