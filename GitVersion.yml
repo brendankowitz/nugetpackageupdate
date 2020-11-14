@@ -1,4 +1,5 @@
 next-version: 1.1
+mode: Mainline
 assembly-versioning-scheme: MajorMinorPatch
 ignore:
   sha: []
@@ -6,7 +7,6 @@ ignore:
 branches:
   master:
     regex: ^master$|^main$
-    mode: ContinuousDelivery
     tag: ''
     increment: Patch
     prevent-increment-of-merged-branch-version: true
@@ -16,7 +16,6 @@ branches:
     pre-release-weight: 1000
   pull-request:
     regex: ^(pull|pull\-requests|pr)[/-]
-    mode: ContinuousDelivery
     tag: pr
     increment: Inherit
     prevent-increment-of-merged-branch-version: false
@@ -26,7 +25,6 @@ branches:
     is-release-branch: false
   hotfix:
     regex: ^hotfix(es)?[/-]
-    mode: ContinuousDelivery
     tag: beta
     increment: Patch
     prevent-increment-of-merged-branch-version: false
@@ -35,7 +33,6 @@ branches:
     is-release-branch: false
   feature:
     regex: ^(personal|dev|feature|auto\-nuget\-update)[/-]
-    mode: ContinuousDelivery
     tag: useBranchName
     increment: Patch
     prevent-increment-of-merged-branch-version: false
