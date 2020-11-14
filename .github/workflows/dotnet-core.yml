@@ -23,11 +23,11 @@ jobs:
     - name: Install dependencies
       run: dotnet restore
     - name: Build
-      run: dotnet build --configuration Release --no-restore
+      run: dotnet build --configuration Release
     - name: Test
       run: dotnet test --no-restore --verbosity normal
     - name: Nuget Packge
       uses: actions/upload-artifact@v1
       with:
-        name: NugetPackageUpdates.nupkg
+        name: NugetPackageUpdates
         path: /home/runner/work/nugetpackageupdate/nugetpackageupdate/NugetUpdate/bin/Release/
