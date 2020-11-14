@@ -9,7 +9,6 @@
     <Product>NugetPackageUpdates</Product>
     <AssemblyName>NugetPackageUpdates</AssemblyName>
     <RootNamespace>NugetPackageUpdates</RootNamespace>
-    <Version>1.0.21</Version>
     <LangVersion>8</LangVersion>
   </PropertyGroup>
 
@@ -17,6 +16,9 @@
     <PackageReference Include="Microsoft.CSharp" Version="4.5.0" />
     <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
     <PackageReference Include="NuGet.Versioning" Version="4.4.0" />
+    <PackageReference Include="GitVersionTask" Version="5.*">
+      <PrivateAssets>All</PrivateAssets>
+    </PackageReference>
   </ItemGroup>
 
 </Project>
