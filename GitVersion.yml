@@ -1,4 +1,3 @@
-next-version: 1.1
 mode: Mainline
 assembly-versioning-scheme: MajorMinorPatch
 ignore:
@@ -13,7 +12,6 @@ branches:
     track-merge-target: false
     tracks-release-branches: false
     is-release-branch: true
-    pre-release-weight: 1000
   pull-request:
     regex: ^(pull|pull\-requests|pr)[/-]
     tag: pr
