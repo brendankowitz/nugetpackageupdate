@@ -17,9 +17,10 @@ namespace NugetPackageUpdates
         private readonly string _githubToken;
         private readonly string _owner;
         private readonly string _project;
+        private readonly string _defaultBranch;
         readonly TextWriter _log;
 
-        public Github(string githubToken, string owner, string project, TextWriter log)
+        public Github(string githubToken, string owner, string project, string defaultBranch, TextWriter log)
         {
             _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", githubToken);
             _client.BaseAddress = new Uri("https://api.github.com");
@@ -29,6 +30,7 @@ namespace NugetPackageUpdates
             _githubToken = githubToken;
             _owner = owner;
             _project = project;
+            _defaultBranch = defaultBranch;
             _log = log;
         }
 
@@ -49,7 +51,7 @@ namespace NugetPackageUpdates
 
             _log.WriteLine("Finding master sha");
 
-            var response = await _client.GetAsync($"/repos/{_owner}/{_project}/git/refs/heads/master");
+            var response = await _client.GetAsync($"/repos/{_owner}/{_project}/git/refs/heads/{_defaultBranch}");
             var value = await response.Content.ReadAsStringAsync();
             var details = JsonConvert.DeserializeObject<dynamic>(value);
 
@@ -118,7 +120,7 @@ namespace NugetPackageUpdates
                 title = messageLines.First(),
                 body = string.Join(Environment.NewLine, messageLines.Skip(1)),
                 head = $"{_owner}:{changeSet.BranchName.Replace("refs/heads/", string.Empty)}",
-                @base = "master"
+                @base = _defaultBranch
             };
 
             var prResult = await _client.PostAsync(

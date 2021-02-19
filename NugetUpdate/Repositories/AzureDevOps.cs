@@ -14,11 +14,13 @@ namespace NugetPackageUpdates
     {
         readonly HttpClient _client = new HttpClient();
         readonly string _apiBase;
+        private readonly string _defaultBranch;
         readonly TextWriter _log;
 
-        public AzureDevOps(string token, string organization, string project, string repo, TextWriter log)
+        public AzureDevOps(string token, string organization, string project, string repo, string defaultBranch, TextWriter log)
         {
             _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", token);
+            _defaultBranch = defaultBranch;
             _log = log;
 
             _apiBase = $"https://{organization}.visualstudio.com/{project}/_apis/git/repositories/{repo}";
@@ -26,7 +28,7 @@ namespace NugetPackageUpdates
 
         public async Task<ICollection<string>> FindProjectFiles()
         {
-            var response = await _client.GetAsync($"{_apiBase}/items?api-version=2.0-preview&versionType=branch&Version=master&recursionLevel=Full");
+            var response = await _client.GetAsync($"{_apiBase}/items?api-version=2.0-preview&versionType=branch&Version={_defaultBranch}&recursionLevel=Full");
 
             response.EnsureSuccessStatusCode();
 
@@ -49,7 +51,7 @@ namespace NugetPackageUpdates
         {
             _log.WriteLine($"Fetching '{projectPath}'");
 
-            var response = await _client.GetAsync($"{_apiBase}/items?api-version=2.0-preview&versionType=branch&Version=master&scopePath={projectPath}");
+            var response = await _client.GetAsync($"{_apiBase}/items?api-version=2.0-preview&versionType=branch&Version={_defaultBranch}&scopePath={projectPath}");
             return new ProjectFile(projectPath, await response.Content.ReadAsByteArrayAsync());
         }
 
@@ -57,7 +59,7 @@ namespace NugetPackageUpdates
         {
             _log.WriteLine($"Fetching '{path}'");
 
-            var response = await _client.GetAsync($"{_apiBase}/items?api-version=2.0-preview&versionType=branch&Version=master&scopePath={path}");
+            var response = await _client.GetAsync($"{_apiBase}/items?api-version=2.0-preview&versionType=branch&Version={_defaultBranch}&scopePath={path}");
             return new TextFile(path, await response.Content.ReadAsByteArrayAsync());
         }
 
@@ -73,7 +75,7 @@ namespace NugetPackageUpdates
 
             _log.WriteLine("Finding master object id");
 
-            var response = await _client.GetAsync($"{_apiBase}/refs?api-version=2.0-preview&filter=heads%2Fmaster");
+            var response = await _client.GetAsync($"{_apiBase}/refs?api-version=2.0-preview&filter=heads%2F{_defaultBranch}");
             var obj = JsonConvert.DeserializeObject<dynamic>(await response.Content.ReadAsStringAsync());
             string masterObjectId = obj.value[0].objectId;
 
@@ -112,7 +114,7 @@ namespace NugetPackageUpdates
             _log.WriteLine($"Creating branch {changeSet.BranchName}");
 
             var branchResult = await _client.PostAsync(
-                $"{_apiBase}/pushes?api-version=2.0-preview&versionType=branch&Version=master",
+                $"{_apiBase}/pushes?api-version=2.0-preview&versionType=branch&Version={_defaultBranch}",
                 new StringContent(JsonConvert.SerializeObject(createBranch), Encoding.UTF8, "application/json"));
 
             branchResult.EnsureSuccessStatusCode();
