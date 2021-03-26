@@ -124,7 +124,7 @@ namespace NugetPackageUpdates
             var pullRequest = new
             {
                 sourceRefName = changeSet.BranchName,
-                targetRefName = "refs/heads/master",
+                targetRefName = $"refs/heads/{_defaultBranch}",
                 title = messageLines.First(),
                 description = string.Join(Environment.NewLine, messageLines.Skip(1)),
                 reviewers = reviewers.Select(x => new { id = x }).ToArray()
