@@ -43,14 +43,32 @@ namespace NugetPackageUpdates
 
         public bool UpdatePackageReference(string packageName, string toVersion)
         {
-            var node = _doc.SelectSingleNode($"Project/ItemGroup/PackageReference[@Include='{packageName}']");
-
-            if (node != null)
+            try
             {
-                node.Attributes["Version"].Value = toVersion;
-                return true;
+                var node = _doc.SelectSingleNode($"Project/ItemGroup/PackageReference[@Include='{packageName}']");
+
+                if (node != null)
+                {
+                    if (node.Attributes?["Version"] != null)
+                    {
+                        node.Attributes["Version"].Value = toVersion;
+                        return true;
+                    }
+
+                    var childVersion = node.SelectSingleNode("Version");
+                    if (childVersion != null)
+                    {
+                        childVersion.InnerText = toVersion;
+                        return true;
+                    }
+                }
+
+                return false;
             }
-            return false;
+            catch (Exception)
+            {
+                return false;
+            }
         }
 
         protected override string GetContent()
