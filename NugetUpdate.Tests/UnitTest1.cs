@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using NugetPackageUpdates;
@@ -96,6 +97,24 @@ namespace NugetUpdate.Tests
             {
                 Assert.NotNull(result.Value);
             }
+        }
+
+        [Fact]
+        public void GivenAProjectFileWithNestedVersionNode_WhenUpdating_ThenItUpdatesCorrectly()
+        {
+            var json = @"<Project><ItemGroup><PackageReference Include=""Test""><Version>1.0.0</Version></PackageReference></ItemGroup></Project>";
+            var proj = new ProjectFile("Test.csproj", Encoding.UTF8.GetBytes(json));
+
+            Assert.True(proj.UpdatePackageReference("Test", "2.0.0"));
+        }
+
+        [Fact]
+        public void GivenAProjectFileWithAttributeVersion_WhenUpdating_ThenItUpdatesCorrectly()
+        {
+            var json = @"<Project><ItemGroup><PackageReference Include=""Test"" Version=""1.0.0"" /></ItemGroup></Project>";
+            var proj = new ProjectFile("Test.csproj", Encoding.UTF8.GetBytes(json));
+
+            Assert.True(proj.UpdatePackageReference("Test", "2.0.0"));
         }
     }
 }
