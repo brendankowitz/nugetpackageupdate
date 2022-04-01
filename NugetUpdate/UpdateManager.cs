@@ -88,32 +88,38 @@ namespace NugetPackageUpdates
 
             foreach (var item in latestPackageVersions)
             {
-                var projectVersion = NuGetVersion.Parse(packages[item.Key]);
-
-                var lastVersion = item.Value;
-                if (lastVersion.Version > projectVersion)
+                if (NuGetVersion.TryParse(packages[item.Key], out var projectVersion))
                 {
-                    // Major minor versions older than 21 days
-                    var shouldUpdateMajorMinor = 
-                        (lastVersion.Version.Major > projectVersion.Major || lastVersion.Version.Minor > projectVersion.Minor)
-                            && lastVersion.Released <= DateTime.Now.AddDays(-PackagesMustBePublishedForThisManyDays);
-
-                    var shouldUpdatePatch = lastVersion.Version.Major == projectVersion.Major
-                                            && lastVersion.Version.Minor == projectVersion.Minor 
-                                            && lastVersion.Version > projectVersion;
-
-                    if (shouldUpdateMajorMinor || shouldUpdatePatch)
+                    var lastVersion = item.Value;
+                    if (lastVersion.Version > projectVersion)
                     {
-                        packagesToUpdate.Add($"{item.Key}|{item.Value.Version}");
+                        // Major minor versions older than 21 days
+                        var shouldUpdateMajorMinor =
+                            (lastVersion.Version.Major > projectVersion.Major || lastVersion.Version.Minor > projectVersion.Minor)
+                                && lastVersion.Released <= DateTime.Now.AddDays(-PackagesMustBePublishedForThisManyDays);
+
+                        var shouldUpdatePatch = lastVersion.Version.Major == projectVersion.Major
+                                                && lastVersion.Version.Minor == projectVersion.Minor
+                                                && lastVersion.Version > projectVersion;
+
+                        if (shouldUpdateMajorMinor || shouldUpdatePatch)
+                        {
+                            packagesToUpdate.Add($"{item.Key}|{item.Value.Version}");
+                        }
                     }
+                }
+                else
+                {
+                    _log.WriteLine($"Unable to parse package version '{packages[item.Key]}' for '{item.Key}'.");
                 }
             }
 
             var packageGroupings =
                 packagesToUpdate
                     .Select(x => x.Split('|'))
-                    .GroupBy(x => PackageGroupings.Select(y => y.GetGroupName(x[0], x[1])).First(y => y != null),
-                        x => x[0]);
+                    .GroupBy(x => PackageGroupings.Select(y => y.GetGroupName(x[0], x[1])).FirstOrDefault(y => y != null),
+                        x => x[0])
+                    .Where(x => x.Key != null);
 
             var changeSets = new List<ChangeSet>();
 
