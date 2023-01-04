@@ -45,7 +45,8 @@ namespace NugetPackageUpdates
         public async Task CreatePullRequestsAsync(
             IRepositorySource ops,
             string[] reviewers,
-            int? prLimit = null)
+            int? prLimit = null,
+            bool associatWithWorkItem = false)
         {
             var changeSets = await GetChangeSets(ops);
 
@@ -55,7 +56,7 @@ namespace NugetPackageUpdates
             {
                 try
                 {
-                    await ops.SubmitPR(pr, reviewers);
+                    await ops.SubmitPR(pr, reviewers, associatWithWorkItem);
                 }
                 catch
                 {

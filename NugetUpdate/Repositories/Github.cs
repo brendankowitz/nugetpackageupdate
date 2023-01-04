@@ -41,7 +41,7 @@ namespace NugetPackageUpdates
             return response.IsSuccessStatusCode;
         }
 
-        public async Task SubmitPR(ChangeSet changeSet, string[] reviewers)
+        public async Task SubmitPR(ChangeSet changeSet, string[] reviewers, bool associateWithWorkItem = false)
         {
             if (await PrExists(changeSet.BranchName))
             {
