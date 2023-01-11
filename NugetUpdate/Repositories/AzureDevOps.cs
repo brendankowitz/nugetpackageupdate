@@ -7,6 +7,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using NugetPackageUpdates.WorkItems;
 
 namespace NugetPackageUpdates
 {
@@ -16,14 +17,18 @@ namespace NugetPackageUpdates
         readonly string _apiBase;
         private readonly string _defaultBranch;
         readonly TextWriter _log;
+        private readonly string _areaPath;
+        private readonly IWorkItemService _workItemService;
 
-        public AzureDevOps(string token, string organization, string project, string repo, string defaultBranch, TextWriter log)
+        public AzureDevOps(string token, string organization, string project, string repo, string defaultBranch, TextWriter log, string areaPath = null)
         {
             _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", token);
             _defaultBranch = defaultBranch;
             _log = log;
 
             _apiBase = $"https://{organization}.visualstudio.com/{project}/_apis/git/repositories/{repo}";
+            _areaPath = areaPath;
+            _workItemService = new WorkItemService(organization, project, token);
         }
 
         public async Task<ICollection<string>> FindProjectFiles()
@@ -68,7 +73,7 @@ namespace NugetPackageUpdates
             await SubmitPR(changeSet, new string[0]);
         }
 
-        public async Task SubmitPR(ChangeSet changeSet, string[] reviewers)
+        public async Task SubmitPR(ChangeSet changeSet, string[] reviewers, bool associateWithWorkItem = false)
         {
             if (changeSet == null) throw new ArgumentNullException(nameof(changeSet));
             if (reviewers == null) throw new ArgumentNullException(nameof(reviewers));
@@ -159,6 +164,37 @@ namespace NugetPackageUpdates
             {
                 Content = new StringContent(JsonConvert.SerializeObject(setAutoComplete), Encoding.UTF8, "application/json")
             });
+
+            if (associateWithWorkItem)
+            {
+                _log.WriteLine("Creating work item and associating with pull request");
+                Tuple<string, string> userStoryInfo = await CreateWorkItemAsync(messageLines.First(), pr.artifactId);
+            }
+        }
+
+        private async Task<string> CreateWorkItemAsync(string title, string artifactId)
+        {
+            if (string.IsNullOrWhiteSpace(artifactId))
+            {
+                throw new ArgumentNullException("aritifactId cannot be null or empty space");
+            }
+
+            var body = new List<object>
+                {
+                    new { op = "add",path = "/fields/System.Title",value = title },
+                    new { op = "add",path = "/fields/System.AreaPath",value = _areaPath },
+                    new { op = "add",path = "/relations/-",value = new {
+                                                               rel = "ArtifactLink",
+                                                               url = artifactId,
+                                                               attributes = new {
+                                                                                  name = "pull request"
+                                                                                }
+                                                  }
+                      }
+                };
+
+            var response = await _workItemService.CreateUserStoryAsync(body, "User Story");
+            return (string)response.id;
         }
 
         public void Dispose()

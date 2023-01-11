@@ -5,7 +5,7 @@ namespace NugetPackageUpdates
 {
     public interface IRepositorySource
     {
-        Task SubmitPR(ChangeSet changeSet, string[] reviewers);
+        Task SubmitPR(ChangeSet changeSet, string[] reviewers, bool associateWithWorkItem = false);
 
         Task<ProjectFile> GetProjectFile(string projectPath);
 
