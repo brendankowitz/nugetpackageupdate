@@ -20,7 +20,7 @@ namespace NugetPackageUpdates
         private readonly string _areaPath;
         private readonly IWorkItemService _workItemService;
 
-        public AzureDevOps(string token, string organization, string project, string repo, string defaultBranch, TextWriter log, string areaPath = "Health\\Healthcare APIs\\Meru")
+        public AzureDevOps(string token, string organization, string project, string repo, string defaultBranch, TextWriter log, string areaPath = null)
         {
             _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", token);
             _defaultBranch = defaultBranch;
@@ -181,13 +181,13 @@ namespace NugetPackageUpdates
 
             var body = new List<object>
                 {
-                    new {op ="add",path="/fields/System.Title",value=$"Bot nuget update : {title}"},
-                    new {op ="add",path="/fields/System.AreaPath",value = _areaPath},
-                    new {op ="add",path="/relations/-",value= new {
-                                                               rel ="ArtifactLink",
-                                                               url= artifactId,
+                    new { op = "add",path = "/fields/System.Title",value = title },
+                    new { op = "add",path = "/fields/System.AreaPath",value = _areaPath },
+                    new { op = "add",path = "/relations/-",value = new {
+                                                               rel = "ArtifactLink",
+                                                               url = artifactId,
                                                                attributes = new {
-                                                                                  name="pull request"
+                                                                                  name = "pull request"
                                                                                 }
                                                   }
                       }
