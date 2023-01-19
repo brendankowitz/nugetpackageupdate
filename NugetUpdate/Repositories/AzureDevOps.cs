@@ -140,7 +140,7 @@ namespace NugetPackageUpdates
                 $"{_apiBase}/pullRequests?api-version=2.0-preview",
                 new StringContent(JsonConvert.SerializeObject(pullRequest), Encoding.UTF8, "application/json"));
 
-            var pr = JsonConvert.DeserializeObject<dynamic>(await prResult.Content.ReadAsStringAsync());
+            var pr = JsonConvert.DeserializeObject<PullRequestItem>(await prResult.Content.ReadAsStringAsync());
 
             prResult.EnsureSuccessStatusCode();
 
@@ -148,7 +148,7 @@ namespace NugetPackageUpdates
             {
                 autoCompleteSetBy = new
                 {
-                    id = (string)pr.createdBy.id
+                    id = (string)pr.CreatedBy.Id
                 },
                 completionOptions = new
                 {
@@ -160,7 +160,7 @@ namespace NugetPackageUpdates
             };
 
             _log.WriteLine("Setting auto-complete");
-            await _client.SendAsync(new HttpRequestMessage(new HttpMethod("PATCH"), $"{_apiBase}/pullRequests/{pr.pullRequestId}?api-version=2.0-preview")
+            await _client.SendAsync(new HttpRequestMessage(new HttpMethod("PATCH"), $"{_apiBase}/pullRequests/{pr.PullRequestId}?api-version=2.0-preview")
             {
                 Content = new StringContent(JsonConvert.SerializeObject(setAutoComplete), Encoding.UTF8, "application/json")
             });
@@ -168,7 +168,7 @@ namespace NugetPackageUpdates
             if (associateWithWorkItem)
             {
                 _log.WriteLine("Creating work item and associating with pull request");
-                Tuple<string, string> userStoryInfo = await CreateWorkItemAsync(messageLines.First(), pr.artifactId);
+                var userStoryId = await CreateWorkItemAsync(messageLines.First(), pr.ArtifactId);
             }
         }
 
