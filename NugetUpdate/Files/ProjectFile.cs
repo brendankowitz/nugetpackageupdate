@@ -33,12 +33,13 @@ namespace NugetPackageUpdates
 
         public IDictionary<string, string> ListPackages()
         {
-            return _doc.SelectNodes($"Project/ItemGroup/PackageReference")
-                .OfType<XmlNode>()
-                .Where(x => x.Attributes != null
+            var packagesDictionary = _doc.SelectNodes($"Project/ItemGroup/PackageReference")
+                ?.OfType<XmlNode>()
+                ?.Where(x => x.Attributes != null
                             && x.Attributes.OfType<XmlAttribute>().Any(y => string.Equals(y.Name, "Include", StringComparison.OrdinalIgnoreCase))
                             && x.Attributes.OfType<XmlAttribute>().Any(y => string.Equals(y.Name, "Version", StringComparison.OrdinalIgnoreCase)))
-                .ToDictionary(x => x.Attributes["Include"].Value, x => x.Attributes["Version"].Value);
+                ?.ToDictionary(x => x.Attributes["Include"].Value, x => x.Attributes["Version"].Value);
+            return packagesDictionary ?? new Dictionary<string, string>();
         }
 
         public bool UpdatePackageReference(string packageName, string toVersion)
