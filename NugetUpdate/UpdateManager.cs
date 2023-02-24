@@ -70,11 +70,29 @@ namespace NugetPackageUpdates
             _log.WriteLine("Fetching project files");
             var projectFiles = await ops.GetProjectFiles();
 
-            var allPackages = projectFiles.SelectMany(x => x.ListPackages()).Select(x => x.Key).Distinct().ToArray();
+            if (projectFiles == null || !projectFiles.Any())
+            {
+                _log.WriteLine("No project files found");
+                return new List<ChangeSet>();
+            }
+
+            var allPackages = projectFiles.SelectMany(x => x.ListPackages())?.Select(x => x.Key)?.Distinct()?.ToArray();
+
+            if (allPackages == null || !allPackages.Any())
+            {
+                _log.WriteLine("No packages found");
+                return new List<ChangeSet>();
+            }
 
             _log.WriteLine("Fetching latest packages");
 
             var nugetPackages = await Task.WhenAll(_nugetApis.Select(x => x.GetPackageVersions(allPackages, AllowBetaPackages)));
+
+            if (nugetPackages == null || !nugetPackages.Any())
+            {
+                _log.WriteLine("No packages found");
+                return new List<ChangeSet>();
+            }
 
             var latestPackageVersions =
                 nugetPackages
@@ -84,8 +102,8 @@ namespace NugetPackageUpdates
 
             HashSet<string> packagesToUpdate = new HashSet<string>();
             var packages = projectFiles.SelectMany(x => x.ListPackages())
-                .GroupBy(x => x.Key)
-                .ToDictionary(x => x.Key, x => x.First().Value);
+                ?.GroupBy(x => x.Key)
+                ?.ToDictionary(x => x.Key, x => x.First().Value);
 
             foreach (var item in latestPackageVersions)
             {
