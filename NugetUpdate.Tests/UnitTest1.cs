@@ -1,13 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Net;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Text;
-using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using NugetPackageUpdates;
+using System;
+using System.Collections.Generic;
+using System.Net.Http;
+using System.Text;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace NugetUpdate.Tests
@@ -115,6 +112,15 @@ namespace NugetUpdate.Tests
         public void GivenAProjectFileWithAttributeVersion_WhenUpdating_ThenItUpdatesCorrectly()
         {
             var json = @"<Project><ItemGroup><PackageReference Include=""Test"" Version=""1.0.0"" /></ItemGroup></Project>";
+            var proj = new ProjectFile("Test.csproj", Encoding.UTF8.GetBytes(json));
+
+            Assert.True(proj.UpdatePackageReference("Test", "2.0.0"));
+        }
+
+        [Fact]
+        public void GivenAProjectFileWithAttributeVersionLowerCase_WhenUpdating_ThenItUpdatesCorrectly()
+        {
+            var json = @"<Project><ItemGroup><PackageReference Include=""Test"" version=""1.0.0"" /></ItemGroup></Project>";
             var proj = new ProjectFile("Test.csproj", Encoding.UTF8.GetBytes(json));
 
             Assert.True(proj.UpdatePackageReference("Test", "2.0.0"));
