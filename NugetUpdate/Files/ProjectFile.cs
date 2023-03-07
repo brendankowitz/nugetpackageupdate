@@ -37,8 +37,9 @@ namespace NugetPackageUpdates
                 ?.OfType<XmlNode>()
                 ?.Where(x => x.Attributes != null
                             && x.Attributes.OfType<XmlAttribute>().Any(y => string.Equals(y.Name, "Include", StringComparison.OrdinalIgnoreCase))
-                            && x.Attributes.OfType<XmlAttribute>().Any(y => string.Equals(y.Name, "Version", StringComparison.OrdinalIgnoreCase)))
-                ?.ToDictionary(x => x.Attributes["Include"].Value, x => x.Attributes["Version"].Value);
+                            && x.Attributes.OfType<XmlAttribute>().Any(y => string.Equals(y.Name, "Version", StringComparison.OrdinalIgnoreCase))
+                            && !(x.Attributes["Version"] ?? x.Attributes["version"]).Value.StartsWith("$"))
+                ?.ToDictionary(x => (x.Attributes["Include"] ?? x.Attributes["include"]).Value, x => (x.Attributes["Version"] ?? x.Attributes["version"]).Value);
             return packagesDictionary ?? new Dictionary<string, string>();
         }
 
@@ -48,15 +49,15 @@ namespace NugetPackageUpdates
             {
                 var node = _doc.SelectSingleNode($"Project/ItemGroup/PackageReference[@Include='{packageName}']");
 
-                if (node != null)
+                if (node != null && node.Attributes != null)
                 {
-                    if (node.Attributes?["Version"] != null)
+                    if ((node.Attributes["Version"] ?? node.Attributes["version"]) != null)
                     {
-                        node.Attributes["Version"].Value = toVersion;
+                        (node.Attributes["Version"] ?? node.Attributes["version"]).Value = toVersion;
                         return true;
                     }
 
-                    var childVersion = node.SelectSingleNode("Version");
+                    var childVersion = (node.SelectSingleNode("Version") ?? node.SelectSingleNode("version"));
                     if (childVersion != null)
                     {
                         childVersion.InnerText = toVersion;
