@@ -46,9 +46,10 @@ namespace NugetPackageUpdates
             IRepositorySource ops,
             string[] reviewers,
             int? prLimit = null,
-            bool associatWithWorkItem = false)
+            bool associatWithWorkItem = false,
+            string componentDirectory = null)
         {
-            var changeSets = await GetChangeSets(ops);
+            var changeSets = await GetChangeSets(ops, componentDirectory: componentDirectory);
 
             _log.WriteLine("Opening PRs");
 
@@ -65,10 +66,10 @@ namespace NugetPackageUpdates
             }
         }
 
-        public async Task<IReadOnlyCollection<ChangeSet>> GetChangeSets(IRepositorySource ops)
+        public async Task<IReadOnlyCollection<ChangeSet>> GetChangeSets(IRepositorySource ops, string componentDirectory = null)
         {
             _log.WriteLine("Fetching project files");
-            var projectFiles = await ops.GetProjectFiles();
+            var projectFiles = await ops.GetProjectFiles(componentDirectory);
 
             if (projectFiles == null || !projectFiles.Any())
             {

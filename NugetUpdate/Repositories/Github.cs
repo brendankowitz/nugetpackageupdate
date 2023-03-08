@@ -162,7 +162,7 @@ namespace NugetPackageUpdates
             return new TextFile(path, fromBase64String, true);
         }
 
-        public async Task<ICollection<string>> FindProjectFiles()
+        public async Task<ICollection<string>> FindProjectFiles(string componentDirectory = null)
         {
             var results = new List<string>();
 
