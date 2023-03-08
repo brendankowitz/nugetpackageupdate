@@ -11,6 +11,6 @@ namespace NugetPackageUpdates
 
         Task<TextFile> GetTextFile(string path);
 
-        Task<ICollection<string>> FindProjectFiles();
+        Task<ICollection<string>> FindProjectFiles(string componentDirectory = null);
     }
 }

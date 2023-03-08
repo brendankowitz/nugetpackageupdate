@@ -31,7 +31,7 @@ namespace NugetPackageUpdates
             _workItemService = new WorkItemService(organization, project, token);
         }
 
-        public async Task<ICollection<string>> FindProjectFiles()
+        public async Task<ICollection<string>> FindProjectFiles(string componentDirectory = null)
         {
             var response = await _client.GetAsync($"{_apiBase}/items?api-version=2.0-preview&versionType=branch&Version={_defaultBranch}&recursionLevel=Full");
 
@@ -43,9 +43,15 @@ namespace NugetPackageUpdates
 
             foreach (dynamic item in content.value)
             {
-                if (((string)item.path).EndsWith("csproj"))
+                string path = (string)item.path ;
+
+                Func<string, bool> isValidCsProj = p =>!string.IsNullOrEmpty(p)
+                                                      && (string.IsNullOrWhiteSpace(componentDirectory) || !string.IsNullOrWhiteSpace(componentDirectory) && p.ToLower().Contains(componentDirectory.ToLower()))
+                                                      && p.EndsWith("csproj");
+
+                if (isValidCsProj(path))
                 {
-                    results.Add((string)item.path);
+                    results.Add(path);
                 }
             }
 
