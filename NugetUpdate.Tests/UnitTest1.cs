@@ -4,7 +4,9 @@ using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using NugetPackageUpdates.FileGroups;
 using Xunit;
 
 namespace NugetUpdate.Tests
@@ -124,6 +126,29 @@ namespace NugetUpdate.Tests
             var proj = new ProjectFile("Test.csproj", Encoding.UTF8.GetBytes(json));
 
             Assert.True(proj.UpdatePackageReference("Test", "2.0.0"));
+        }
+
+        [InlineData(@"C:\Users\user\source\repos\test\test.csproj", "/test", "test-group")]
+        [InlineData(@"C:\Users\user\source\repos\test\test.csproj", "test", "test-group")]
+        [InlineData(@"C:\Users\user\source\repos\test\test.csproj", @"C:/Users/user/source/repos/test/test.csproj", "test-group")]
+        [InlineData(@"C:\Users\user\source\repos\test\test.csproj", "test\\", "test-group")]
+        [InlineData(@"C:\Users\user\source\repos\test\test.csproj", "foo", (string)null)]
+        [Theory]
+        public void GivenAPathContainsGroup_WhenGivenAPath_ThenItReturnsTrueWhenIncludedInTheGroup(string path, string contains, string name)
+        {
+            var group = new PathContainsGroup("test-group", contains);
+
+            Assert.Equal(name, group.GetGroupName(path));
+        }
+
+        [InlineData(@"C:\Users\user\source\repos\test\test.csproj", "test")]
+        [InlineData(@"C:\Users\user\source\repos\test.csproj", (string)null)]
+        [Theory]
+        public void GivenAPathContainsRegexGroup_WhenGivenAPath_ThenItReturnsTrueWhenIncludedInTheGroup(string path, string name)
+        {
+            var group = new PathRegexGroup(new Regex(@"\/repos\/([a-z]+)\/"));
+
+            Assert.Equal(name, group.GetGroupName(path));
         }
     }
 }

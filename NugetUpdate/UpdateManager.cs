@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using NuGet.Versioning;
+using NugetPackageUpdates.FileGroups;
 
 namespace NugetPackageUpdates
 {
@@ -31,6 +32,11 @@ namespace NugetPackageUpdates
             new StartsWithPackageGroup("Microsoft.CodeAnalysis", "Microsoft.CodeAnalysis", "Microsoft.SourceLink", "StyleCop.Analyzers", "Microsoft.CodeCoverage", "Microsoft.NET.Test.Sdk"),
             new FirstSegmentPackageGroup("System", "Microsoft"),
             new UniqueNamePackageGroup()
+        };
+
+        public IList<IFileGrouping> FileGroupings { get; } = new List<IFileGrouping>
+        {
+            new AnyFileGroup(),
         };
 
         public IList<string> AllowBetaPackages { get; } = new List<string>();
@@ -138,56 +144,67 @@ namespace NugetPackageUpdates
                     .Select(x => x.Split('|'))
                     .GroupBy(x => PackageGroupings.Select(y => y.GetGroupName(x[0], x[1])).FirstOrDefault(y => y != null),
                         x => x[0])
-                    .Where(x => x.Key != null);
+                    .Where(x => x.Key != null)
+                    .ToList();
 
             var changeSets = new List<ChangeSet>();
 
-            foreach (var group in packageGroupings)
+            var fileGroupings = FileGroupings.Count == 0 ? new[] { new AnyFileGroup() } : FileGroupings;
+
+            var filesToUpdate = projectFiles
+                .GroupBy(x => fileGroupings.GetGroupNameFor(x));
+
+            foreach (var fileGroup in filesToUpdate)
             {
-                var message =
-                    new StringBuilder($"Auto-update for packages related to '{@group.Key}'");
-                message.AppendLine();
-                message.AppendLine();
-
-                var groupChangeSet = new ChangeSet
+                foreach (var group in packageGroupings)
                 {
-                    BranchName = $"refs/heads/auto-nuget-update/{@group.Key.ToLowerInvariant()}",
-                };
+                    var groupHasValue = !string.IsNullOrEmpty(fileGroup.Key) ? "-" : string.Empty;
 
-                foreach (var package in @group)
-                {
-                    var packageUpdateMessage =
-                        $"Updates package '{package}' to version '{latestPackageVersions[package].Version}'";
+                    var message =
+                        new StringBuilder($"Auto-update for packages related to '{@group.Key}' {groupHasValue}{fileGroup.Key}");
+                    message.AppendLine();
+                    message.AppendLine();
 
-                    if (@group.Count() == 1)
+                    var groupChangeSet = new ChangeSet
                     {
-                        message = new StringBuilder(packageUpdateMessage);
-                    }
-                    else
+                        BranchName = $"refs/heads/auto-nuget-update/{@group.Key.ToLowerInvariant()}{groupHasValue + fileGroup.Key.ToLowerInvariant()}",
+                    };
+
+                    foreach (var package in @group)
                     {
-                        message.AppendLine(packageUpdateMessage);
+                        var packageUpdateMessage =
+                            $"Updates package '{package}' to version '{latestPackageVersions[package].Version}'";
+
+                        if (@group.Count() == 1)
+                        {
+                            message = new StringBuilder(packageUpdateMessage);
+                        }
+                        else
+                        {
+                            message.AppendLine(packageUpdateMessage);
+                        }
+
+                        foreach (var projectFile in fileGroup)
+                        {
+                            projectFile.UpdatePackageReference(package,
+                                latestPackageVersions[package].Version.ToString());
+                        }
                     }
 
-                    foreach (var projectFile in projectFiles)
+                    foreach (var projectFile in fileGroup)
                     {
-                        projectFile.UpdatePackageReference(package,
-                            latestPackageVersions[package].Version.ToString());
+                        var change = projectFile.ToChange();
+                        if (change != null)
+                        {
+                            groupChangeSet.Changes.Add(change);
+                        }
+
+                        projectFile.Reset();
                     }
+
+                    groupChangeSet.Message = message.ToString();
+                    changeSets.Add(groupChangeSet);
                 }
-
-                foreach (var projectFile in projectFiles)
-                {
-                    var change = projectFile.ToChange();
-                    if (change != null)
-                    {
-                        groupChangeSet.Changes.Add(change);
-                    }
-
-                    projectFile.Reset();
-                }
-
-                groupChangeSet.Message = message.ToString();
-                changeSets.Add(groupChangeSet);
             }
 
             return changeSets;
